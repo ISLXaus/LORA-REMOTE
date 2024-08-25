@@ -15,7 +15,7 @@
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_NeoPixel.h>
 #ifdef __AVR__
- #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
+#include <avr/power.h>  // Required for 16 MHz Adafruit Trinket
 #endif
 //define the pins used by the LoRa transceiver module
 #define SCK 5
@@ -47,7 +47,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 
 #define PIN 14
 
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(3, PIN, NEO_RGB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(7, PIN, NEO_RGB + NEO_KHZ800);
 
 uint32_t red = strip.Color(255, 0, 0);
 uint32_t green = strip.Color(0, 255, 0);
@@ -132,16 +132,22 @@ void setup() {
   pinMode(34, INPUT);
   pinMode(35, INPUT);  // Set the new button pins as INPUT_PULLUP
   pinMode(36, INPUT);
-
+  pinMode(39, INPUT);
+  pinMode(13, INPUT);
+  pinMode(15, INPUT);
 
   strip.begin();
   strip.setBrightness(255);
   strip.show();
 
-  strip.setBrightness(255);
+  strip.setBrightness(127);
   strip.setPixelColor(0, 255, 255, 255);  //RED
   strip.setPixelColor(1, 255, 255, 255);  //Yellow
   strip.setPixelColor(2, 255, 255, 255);  //Green
+  strip.setPixelColor(3, 255, 255, 255);  //RED
+  strip.setPixelColor(4, 255, 255, 255);  //Yellow
+  strip.setPixelColor(5, 255, 255, 255);  //Green
+    strip.setPixelColor(6, 127, 127, 127);  //Green
   strip.show();
 
   // attachInterrupt(34, isrButton1, FALLING);
@@ -204,43 +210,42 @@ LoRa.beginPacket();
 
     if (LoRaData == "L1") {
 
-      strip.setPixelColor(0, 255,0,0);  //RED
+      strip.setPixelColor(0, 255, 0, 0);  //RED
 
       strip.show();
     } else if (LoRaData == "L2") {
-      strip.setPixelColor(1, 255,0,0);  //RED
+      strip.setPixelColor(1, 255, 0, 0);  //RED
 
       strip.show();
 
     } else if (LoRaData == "L3") {
-      strip.setPixelColor(2, 255,0,0);  //RED
+      strip.setPixelColor(2, 255, 0, 0);  //RED
 
       strip.show();
     } else if (LoRaData == "P1") {
-      strip.setPixelColor(0, 0,255,0);  //GREEN
+      strip.setPixelColor(0, 0, 255, 0);  //GREEN
 
       strip.show();
     } else if (LoRaData == "P2") {
-      strip.setPixelColor(1, 0,255,0);  //GREEN
+      strip.setPixelColor(1, 0, 255, 0);  //GREEN
 
       strip.show();
 
     } else if (LoRaData == "P3") {
-      strip.setPixelColor(2, 0,255,0);  //GREEN
+      strip.setPixelColor(2, 0, 255, 0);  //GREEN
 
       strip.show();
-    }
-    else if (LoRaData == "W1") {
-      strip.setPixelColor(0, 255,255,255);  //GREEN
+    } else if (LoRaData == "W1") {
+      strip.setPixelColor(0, 255, 255, 255);  //GREEN
 
       strip.show();
     } else if (LoRaData == "W2") {
-      strip.setPixelColor(1, 255,255,255);  //GREEN
+      strip.setPixelColor(1, 255, 255, 255);  //GREEN
 
       strip.show();
 
     } else if (LoRaData == "W3") {
-      strip.setPixelColor(2, 255,255,255);  //GREEN
+      strip.setPixelColor(2, 255, 255, 255);  //GREEN
 
       strip.show();
     }
