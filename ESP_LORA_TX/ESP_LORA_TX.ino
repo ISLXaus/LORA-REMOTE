@@ -9,6 +9,73 @@
 #include <SPI.h>
 #include <LoRa.h>
 
+#define Button_1 34
+#define Button_2 35
+#define Button_3 36
+#define Button_4 39
+#define Button_5 13
+#define Button_6 15
+
+// Define button pins and their corresponding messages
+const int buttonPins[] = { Button_1, Button_2, Button_3, Button_4, Button_5, Button_6 };
+const char* buttonMessages[] = { "B1", "B2", "B3", "B4", "B5", "B6" };
+
+volatile bool dataAvailable = false;
+uint8_t receivedBuffer[18];
+
+
+
+
+
+//-- for islx bitmap
+#define imageWidth 128
+#define imageHeight 32
+
+
+
+
+//---islx bitmap
+const unsigned char islxLogo[] PROGMEM = {
+  // 'undefined, 128x32px
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x0f, 0x80, 0x1f, 0xff, 0xff, 0x81, 0xf0, 0x00, 0x00, 0x1f, 0xe0, 0x00, 0x0f, 0xf0, 0x00,
+  0x00, 0x0f, 0x80, 0x7f, 0xff, 0xff, 0x81, 0xf0, 0x00, 0x00, 0x07, 0xf0, 0x00, 0x1f, 0xc0, 0x00,
+  0x00, 0x0f, 0x80, 0xff, 0xff, 0xff, 0x81, 0xf0, 0x00, 0x00, 0x03, 0xf8, 0x00, 0x3f, 0x80, 0x00,
+  0x00, 0x0f, 0x81, 0xff, 0xff, 0xff, 0x81, 0xf0, 0x00, 0x00, 0x01, 0xfc, 0x00, 0x7f, 0x00, 0x00,
+  0x00, 0x0f, 0x81, 0xff, 0xff, 0xff, 0x81, 0xf0, 0x00, 0x00, 0x00, 0xfe, 0x00, 0xff, 0x00, 0x00,
+  0x00, 0x0f, 0x83, 0xf8, 0x00, 0x00, 0x01, 0xf0, 0x00, 0x00, 0x00, 0xff, 0x01, 0xfe, 0x00, 0x00,
+  0x00, 0x0f, 0x83, 0xf0, 0x00, 0x00, 0x01, 0xf0, 0x00, 0x00, 0x00, 0x7f, 0x01, 0xfc, 0x00, 0x00,
+  0x00, 0x0f, 0x83, 0xe0, 0x00, 0x00, 0x01, 0xf0, 0x00, 0x00, 0x00, 0x3f, 0x83, 0xf8, 0x00, 0x00,
+  0x00, 0x0f, 0x83, 0xe0, 0x00, 0x00, 0x01, 0xf0, 0x00, 0x00, 0x00, 0x1f, 0xc7, 0xf0, 0x00, 0x00,
+  0x00, 0x0f, 0x83, 0xe0, 0x00, 0x00, 0x01, 0xf0, 0x00, 0x00, 0x00, 0x0f, 0xef, 0xe0, 0x00, 0x00,
+  0x00, 0x0f, 0x83, 0xf0, 0x00, 0x00, 0x01, 0xf0, 0x00, 0x00, 0x00, 0x07, 0xff, 0xc0, 0x00, 0x00,
+  0x00, 0x0f, 0x83, 0xfc, 0x00, 0x00, 0x01, 0xf0, 0x00, 0x00, 0x00, 0x07, 0xff, 0xc0, 0x00, 0x00,
+  0x00, 0x0f, 0x81, 0xff, 0xff, 0xfe, 0x01, 0xf0, 0x00, 0x00, 0x00, 0x03, 0xff, 0x80, 0x00, 0x00,
+  0x00, 0x0f, 0x80, 0xff, 0xff, 0xff, 0x01, 0xf0, 0x00, 0x00, 0x00, 0x01, 0xff, 0x00, 0x00, 0x00,
+  0x00, 0x0f, 0x80, 0xff, 0xff, 0xff, 0x81, 0xf0, 0x00, 0x00, 0x00, 0x00, 0xfe, 0x00, 0x00, 0x00,
+  0x00, 0x0f, 0x80, 0x3f, 0xff, 0xff, 0xc1, 0xf0, 0x00, 0x00, 0x00, 0x01, 0xff, 0x00, 0x00, 0x00,
+  0x00, 0x0f, 0x80, 0x0f, 0xff, 0xff, 0xe1, 0xf0, 0x00, 0x00, 0x00, 0x03, 0xff, 0x80, 0x00, 0x00,
+  0x00, 0x0f, 0x80, 0x00, 0x00, 0x07, 0xe1, 0xf0, 0x00, 0x00, 0x00, 0x07, 0xff, 0xc0, 0x00, 0x00,
+  0x00, 0x0f, 0x80, 0x00, 0x00, 0x03, 0xe1, 0xf0, 0x00, 0x00, 0x00, 0x0f, 0xff, 0xe0, 0x00, 0x00,
+  0x00, 0x0f, 0x80, 0x00, 0x00, 0x03, 0xe1, 0xf0, 0x00, 0x00, 0x00, 0x0f, 0xef, 0xf0, 0x00, 0x00,
+  0x00, 0x0f, 0x80, 0x00, 0x00, 0x03, 0xe1, 0xf0, 0x00, 0x00, 0x00, 0x1f, 0xc7, 0xf0, 0x00, 0x00,
+  0x00, 0x0f, 0x80, 0x00, 0x00, 0x03, 0xe1, 0xf0, 0x00, 0x00, 0x00, 0x3f, 0x83, 0xf8, 0x00, 0x00,
+  0x00, 0x0f, 0x80, 0x00, 0x00, 0x07, 0xe1, 0xf0, 0x00, 0x00, 0x00, 0x7f, 0x01, 0xfc, 0x00, 0x00,
+  0x00, 0x0f, 0x80, 0x00, 0x00, 0x0f, 0xe1, 0xf0, 0x00, 0x00, 0x00, 0xfe, 0x00, 0xfe, 0x00, 0x00,
+  0x00, 0x0f, 0x83, 0xff, 0xff, 0xff, 0xc1, 0xff, 0xff, 0xff, 0xc1, 0xfc, 0x00, 0x7f, 0x00, 0x00,
+  0x00, 0x0f, 0x83, 0xff, 0xff, 0xff, 0xc1, 0xff, 0xff, 0xff, 0xc3, 0xfc, 0x00, 0x7f, 0x80, 0x00,
+  0x00, 0x0f, 0x83, 0xff, 0xff, 0xff, 0x81, 0xff, 0xff, 0xff, 0xc3, 0xf8, 0x00, 0x3f, 0xc0, 0x00,
+  0x00, 0x0f, 0x83, 0xff, 0xff, 0xff, 0x01, 0xff, 0xff, 0xff, 0xc7, 0xf0, 0x00, 0x1f, 0xc0, 0x00,
+  0x00, 0x0f, 0x83, 0xff, 0xff, 0xfc, 0x00, 0xff, 0xff, 0xff, 0xdf, 0xe0, 0x00, 0x0f, 0xf0, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+
+
+
+
+
 //Libraries for OLED Display
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -104,11 +171,10 @@ void setup() {
   display.clearDisplay();
   display.setTextColor(WHITE);
   display.setTextSize(1);
-  display.setCursor(0, 0);
-  display.print("LORA SENDER ");
-  display.display();
+  display.clearDisplay();  // stop the diaply of adafruit logo
+  display.drawBitmap(0, 0, islxLogo, 128, 32, 1);
 
-  Serial.println("LoRa Sender Test");
+  display.display();
 
   //SPI LoRa pins
   SPI.begin(SCK, MISO, MOSI, SS);
@@ -121,33 +187,54 @@ void setup() {
       ;
   }
   Serial.println("LoRa Initializing OK!");
-  display.setCursor(0, 10);
-  display.print("LoRa Initializing OK!");
-  display.display();
+  //display.setCursor(0, 10);
+  //display.print("LoRa Initializing OK!");
+  //display.display();
   delay(2000);
 
 
+  LoRa.onReceive(onReceive);
+  LoRa.receive();  // Put LoRa in receive mode
+  Serial.println("LoRa initialized. Waiting for data...");
 
-
-  pinMode(34, INPUT);
-  pinMode(35, INPUT);  // Set the new button pins as INPUT_PULLUP
-  pinMode(36, INPUT);
-  pinMode(39, INPUT);
-  pinMode(13, INPUT);
-  pinMode(15, INPUT);
+  pinMode(Button_1, INPUT);
+  pinMode(Button_2, INPUT);  // Set the new button pins as INPUT_PULLUP
+  pinMode(Button_3, INPUT);
+  pinMode(Button_4, INPUT);
+  pinMode(Button_5, INPUT);
+  pinMode(Button_6, INPUT);
 
   strip.begin();
   strip.setBrightness(255);
   strip.show();
 
+
+  // Initialize all pixels to 'off'
+  colorWipe(strip.Color(255, 0, 0), 100);  // Red
+  colorWipe(strip.Color(0, 255, 0), 100);  // Green
+
+  colorWipe(strip.Color(0, 0, 255), 100);  // Blue
+
+  rainbowCycle(2);
+
   strip.setBrightness(127);
-  strip.setPixelColor(0, 255, 255, 255);  //RED
-  strip.setPixelColor(1, 255, 255, 255);  //Yellow
-  strip.setPixelColor(2, 255, 255, 255);  //Green
-  strip.setPixelColor(3, 255, 255, 255);  //RED
-  strip.setPixelColor(4, 255, 255, 255);  //Yellow
-  strip.setPixelColor(5, 255, 255, 255);  //Green
-    strip.setPixelColor(6, 127, 127, 127);  //Green
+  strip.setPixelColor(0, 255, 0, 0);  //RED
+  strip.setPixelColor(1, 0, 255, 0);  //Yellow
+  strip.setPixelColor(2, 0, 0, 255);  //Green
+  strip.setPixelColor(3, 255, 0, 0);  //RED
+  strip.setPixelColor(4, 0, 255, 0);  //Yellow
+  strip.setPixelColor(5, 0, 0, 255);  //Green
+                                      //
+
+
+  strip.setPixelColor(0, 10, 10, 10);  //RED
+  strip.setPixelColor(1, 10, 10, 10);  //Yellow
+  strip.setPixelColor(2, 10, 10, 10);  //Green
+  strip.setPixelColor(3, 10, 10, 10);  //RED
+  strip.setPixelColor(4, 10, 10, 10);  //Yellow
+  strip.setPixelColor(5, 10, 10, 10);  //Green
+
+
   strip.show();
 
   // attachInterrupt(34, isrButton1, FALLING);
@@ -158,121 +245,115 @@ void setup() {
 
 void loop() {
 
-  if (digitalRead(34) == LOW) {
 
-    LoRa.beginPacket();
-    LoRa.print("B1");
-    LoRa.endPacket();
-    // button1Pressed = false;
+
+  if (dataAvailable) {
+    //  esp_task_wdt_reset(); // Reset watchdog
+    dataAvailable = false;
+    handlePacket();
   }
 
-  if (digitalRead(35) == LOW) {
-
-    LoRa.beginPacket();
-    LoRa.print("B2");
-    LoRa.endPacket();
-    // button2Pressed = false;
-  }
-
-  if (digitalRead(36) == LOW) {
-
-    LoRa.beginPacket();
-    LoRa.print("B3");
-    LoRa.endPacket();
-    // button3Pressed = false;
-  }
-  /*
-LoRa.beginPacket();
-  LoRa.print("hello ");
-  LoRa.print(counter);
-  LoRa.endPacket();
-*/
-
-  //delay(1000);
+  checkButtons();
 
 
 
-
-
-
-
-  //try to parse packet Recieved from companion
-  int packetSize = LoRa.parsePacket();
-  if (packetSize) {
-    //received a packet
-    //   Serial.print("Received packet ");
-
-    //read packet
-    while (LoRa.available()) {
-      LoRaData = LoRa.readString();
-      Serial.println(LoRaData);
-    }
-
-    if (LoRaData == "L1") {
-
-      strip.setPixelColor(0, 255, 0, 0);  //RED
-
-      strip.show();
-    } else if (LoRaData == "L2") {
-      strip.setPixelColor(1, 255, 0, 0);  //RED
-
-      strip.show();
-
-    } else if (LoRaData == "L3") {
-      strip.setPixelColor(2, 255, 0, 0);  //RED
-
-      strip.show();
-    } else if (LoRaData == "P1") {
-      strip.setPixelColor(0, 0, 255, 0);  //GREEN
-
-      strip.show();
-    } else if (LoRaData == "P2") {
-      strip.setPixelColor(1, 0, 255, 0);  //GREEN
-
-      strip.show();
-
-    } else if (LoRaData == "P3") {
-      strip.setPixelColor(2, 0, 255, 0);  //GREEN
-
-      strip.show();
-    } else if (LoRaData == "W1") {
-      strip.setPixelColor(0, 255, 255, 255);  //GREEN
-
-      strip.show();
-    } else if (LoRaData == "W2") {
-      strip.setPixelColor(1, 255, 255, 255);  //GREEN
-
-      strip.show();
-
-    } else if (LoRaData == "W3") {
-      strip.setPixelColor(2, 255, 255, 255);  //GREEN
-
-      strip.show();
-    }
-
-
-
-    //print RSSI of packet
-    int rssi = LoRa.packetRssi();
-    //  Serial.print(" with RSSI ");
-    // Serial.println(rssi);
-  }
 
   display.clearDisplay();
   display.setCursor(0, 0);
-  display.println(String(digitalRead(34)));
-  display.setCursor(0, 20);
-  display.setTextSize(1);
-  display.print(String(digitalRead(35)));
-  display.setCursor(0, 30);
-  display.print(String(digitalRead(36)));
+  display.println(String(digitalRead(Button_1)) + " " + String(digitalRead(Button_2)) + " " + String(digitalRead(Button_3)) + " " + String(digitalRead(Button_4)) + " " + String(digitalRead(Button_5)) + " " + String(digitalRead(Button_6)));
+  //display.setCursor(0, 20);
+  //display.setTextSize(1);
+  //display.print(String(digitalRead(35)));
+  //display.setCursor(0, 30);
+  ///display.print(String(digitalRead(36)));
   display.setCursor(50, 30);
   display.print(counter);
   display.setCursor(0, 40);
   display.print(LoRaData);
-
-
+  display.setCursor(0, 40);
+  int rssi = LoRa.packetRssi();
+  display.print("RSSI ");
+  display.println(String(map(rssi, -120, -30, 0, 100)) + "%");
   display.display();
 
   counter++;
+}
+
+
+
+void checkButtons() {
+  for (int i = 0; i < sizeof(buttonPins) / sizeof(buttonPins[0]); i++) {
+    if (digitalRead(buttonPins[i]) == LOW) {
+      LoRa.beginPacket();
+      LoRa.print(buttonMessages[i]);
+      LoRa.endPacket();
+    }
+  }
+}
+
+
+
+
+void onReceive(int packetSize) {
+  if (packetSize != 18) {
+    return;  // Ignore invalid packets
+  }
+
+  for (int i = 0; i < packetSize; i++) {
+    if (LoRa.available()) {
+      receivedBuffer[i] = LoRa.read();
+    }
+  }
+  dataAvailable = true;  // Flag for processing in the main loop
+}
+
+void handlePacket() {
+  uint8_t receivedColors[6][3];
+  for (int i = 0; i < 18; i++) {
+    receivedColors[i / 3][i % 3] = receivedBuffer[i];
+  }
+
+  for (int i = 0; i < 6; i++) {
+    strip.setPixelColor(i, strip.Color(receivedColors[i][0], receivedColors[i][1], receivedColors[i][2]));
+  }
+  strip.show();
+}
+
+
+void rainbowCycle(uint8_t wait) {
+  uint16_t i, j;
+
+  for (j = 0; j < 256 * 5; j++) {  // 5 cycles of all colors on wheel
+    for (i = 0; i < strip.numPixels(); i++) {
+      strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) - j + 256) & 255));
+    }
+    strip.show();
+    //setRGBLED();
+    delay(wait);
+  }
+}
+
+// Input a value 0 to 255 to get a color value.
+// The colours are a transition r - g - b - back to r.
+uint32_t Wheel(byte WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if (WheelPos < 85) {
+    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if (WheelPos < 170) {
+    WheelPos -= 85;
+    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
+
+// Fill the dots one after the other with a color
+void colorWipe(uint32_t c, uint8_t wait) {
+  for (uint16_t i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, c);
+    strip.show();
+    //setRGBLED();
+    delay(wait);
+  }
 }

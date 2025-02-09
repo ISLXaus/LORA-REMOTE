@@ -36,11 +36,70 @@ RX
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 
+// Buffer for incoming commands
+char commandBuffer[512]; // Assuming commands won't exceed 32 characters
+int bufferIndex = 0;
+
 String LoRaData;
- String teststr;
+String teststr;
+
+// Example RGB colors
+uint8_t colors[6][3] = {
+  { 255, 0, 0 },    // Red
+  { 0, 255, 0 },    // Green
+  { 0, 0, 255 },    // Blue
+  { 255, 255, 0 },  // Yellow
+  { 0, 255, 255 },  // Cyan
+  { 255, 0, 255 }   // Magenta
+};
 
 
 
+void processCommand(char* command) {
+  int led, r, g, b;
+  if (sscanf(command, "%d,%d,%d,%d", &led, &r, &g, &b) == 4) { // Parse command
+    if (led >= 0 && led < 6) {
+      colors[led][0] = r;
+      colors[led][1] = g;
+      colors[led][2] = b;
+      /*Serial.print("Updated LED ");
+      Serial.print(led);
+      Serial.print(" to RGB(");
+      Serial.print(r);
+      Serial.print(", ");
+      Serial.print(g);
+      Serial.print(", ");
+      Serial.print(b);
+      Serial.println(")");
+   */
+      sendColors(); // Send the new color configuration via LoRa
+    } else {
+    //  Serial.println("Invalid LED number");
+    }
+  } else {
+   // Serial.println("Invalid command format");
+  }
+}
+
+
+
+void sendColors() {
+  LoRa.beginPacket();
+  for (int i = 0; i < 6; i++) {
+    for (int j = 0; j < 3; j++) {
+      LoRa.write(colors[i][j]);  // Send each color component
+    /*  Serial.print("Sending color[");
+      Serial.print(i);
+      Serial.print("][");
+      Serial.print(j);
+      Serial.print("]: ");
+      Serial.println(colors[i][j]);
+    */
+    }
+  }
+  LoRa.endPacket();
+  Serial.println("Colors sent via LoRa");
+}
 
 void setup() {
   //initialize Serial Monitor
@@ -84,6 +143,12 @@ void setup() {
   display.setCursor(0, 10);
   display.println("LoRa Initializing OK!");
   display.display();
+
+
+
+
+
+  //sendColors();
 }
 
 void loop() {
@@ -123,6 +188,7 @@ void loop() {
     display.print(teststr);
     display.display();
   }
+  /*
   if (Serial.available() >= 1) {
     //wait for data available
     String teststr = Serial.readString();  //read until timeout
@@ -132,7 +198,7 @@ void loop() {
     LoRa.print(teststr);
     LoRa.endPacket();
 
-       // Dsiplay information
+    // Dsiplay information
     display.clearDisplay();
     display.setCursor(0, 0);
     display.print("LORA RECEIVER");
@@ -143,11 +209,46 @@ void loop() {
     display.setCursor(0, 40);
     display.print("RSSI:");
     display.setCursor(30, 40);
-   // display.print(rssi);
+    // display.print(rssi);
     display.setCursor(0, 50);
     display.print("teststr: ");
     display.setCursor(40, 50);
     display.print(teststr);
     display.display();
+
+
+   
   }
+  */
+
+  while (Serial.available() > 0) {
+    char inChar = Serial.read();
+    if (inChar == '\n' || inChar == '\r') { // End of command
+      commandBuffer[bufferIndex] = '\0'; // Null-terminate the string
+      processCommand(commandBuffer);
+      bufferIndex = 0; // Reset for next command
+    } else if (bufferIndex < sizeof(commandBuffer) - 1) {
+      commandBuffer[bufferIndex++] = inChar;
+    }
+  }
+        // Dsiplay information
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.print("LORA RECEIVER");
+    display.setCursor(0, 20);
+    display.print("Received packet:");
+    display.setCursor(0, 30);
+    display.print(LoRaData);
+    display.setCursor(0, 40);
+    display.print("RSSI:");
+    display.setCursor(30, 40);
+    // display.print(rssi);
+    display.setCursor(0, 50);
+    display.print("S: ");
+    display.setCursor(40, 50);
+   // display.print(inChar);
+    display.display();
+
+    
 }
+
