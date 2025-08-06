@@ -62,7 +62,7 @@ void processCommand(char* command) {
       colors[led][0] = r;
       colors[led][1] = g;
       colors[led][2] = b;
-      /*Serial.print("Updated LED ");
+      Serial.print("Updated LED ");
       Serial.print(led);
       Serial.print(" to RGB(");
       Serial.print(r);
@@ -71,7 +71,7 @@ void processCommand(char* command) {
       Serial.print(", ");
       Serial.print(b);
       Serial.println(")");
-   */
+   
       sendColors(); // Send the new color configuration via LoRa
     } else {
     //  Serial.println("Invalid LED number");
@@ -152,103 +152,48 @@ void setup() {
 }
 
 void loop() {
-
-  //try to parse packet
+  // LoRa Packet Reception
   int packetSize = LoRa.parsePacket();
   if (packetSize) {
-    //received a packet
-    //   Serial.print("Received packet ");
+    LoRaData = LoRa.readString();
+   // Serial.println("Received LoRa Packet: " + LoRaData);
+    Serial.println(LoRaData);
 
-    //read packet
-    while (LoRa.available()) {
-      LoRaData = LoRa.readString();
-      Serial.println(LoRaData);
-    }
-
-    //print RSSI of packet
-    int rssi = LoRa.packetRssi();
-    //  Serial.print(" with RSSI ");
-    // Serial.println(rssi);
-
-    // Dsiplay information
+    // Display LoRa Data
     display.clearDisplay();
     display.setCursor(0, 0);
     display.print("LORA RECEIVER");
     display.setCursor(0, 20);
-    display.print("Received packet:");
+    display.print("Received:");
     display.setCursor(0, 30);
     display.print(LoRaData);
-    display.setCursor(0, 40);
-    display.print("RSSI:");
-    display.setCursor(30, 40);
-    display.print(rssi);
-    display.setCursor(0, 50);
-    display.print("teststr: ");
-    display.setCursor(40, 50);
-    display.print(teststr);
     display.display();
   }
-  /*
-  if (Serial.available() >= 1) {
-    //wait for data available
-    String teststr = Serial.readString();  //read until timeout
-    teststr.trim();                        // remove any \r \n whitespace at the end of the String
 
-    LoRa.beginPacket();
-    LoRa.print(teststr);
-    LoRa.endPacket();
-
-    // Dsiplay information
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.print("LORA RECEIVER");
-    display.setCursor(0, 20);
-    display.print("Received packet:");
-    display.setCursor(0, 30);
-    display.print(LoRaData);
-    display.setCursor(0, 40);
-    display.print("RSSI:");
-    display.setCursor(30, 40);
-    // display.print(rssi);
-    display.setCursor(0, 50);
-    display.print("teststr: ");
-    display.setCursor(40, 50);
-    display.print(teststr);
-    display.display();
-
-
-   
-  }
-  */
-
+  // Serial Command Input (Non-blocking)
   while (Serial.available() > 0) {
     char inChar = Serial.read();
-    if (inChar == '\n' || inChar == '\r') { // End of command
-      commandBuffer[bufferIndex] = '\0'; // Null-terminate the string
-      processCommand(commandBuffer);
-      bufferIndex = 0; // Reset for next command
+
+    if (inChar == '\n' || inChar == '\r') {
+      if (bufferIndex > 0) {
+        commandBuffer[bufferIndex] = '\0'; // Terminate string
+        Serial.print("Command Received: ");
+        Serial.println(commandBuffer);
+
+        // Process Command
+        processCommand(commandBuffer);
+
+        // Send command string over LoRa for testing
+        LoRa.beginPacket();
+        LoRa.print(commandBuffer);
+        LoRa.endPacket();
+
+        bufferIndex = 0;
+      }
     } else if (bufferIndex < sizeof(commandBuffer) - 1) {
       commandBuffer[bufferIndex++] = inChar;
     }
   }
-        // Dsiplay information
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.print("LORA RECEIVER");
-    display.setCursor(0, 20);
-    display.print("Received packet:");
-    display.setCursor(0, 30);
-    display.print(LoRaData);
-    display.setCursor(0, 40);
-    display.print("RSSI:");
-    display.setCursor(30, 40);
-    // display.print(rssi);
-    display.setCursor(0, 50);
-    display.print("S: ");
-    display.setCursor(40, 50);
-   // display.print(inChar);
-    display.display();
-
-    
 }
+
 

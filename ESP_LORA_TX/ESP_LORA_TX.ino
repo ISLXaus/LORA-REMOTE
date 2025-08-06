@@ -287,6 +287,7 @@ void checkButtons() {
       LoRa.beginPacket();
       LoRa.print(buttonMessages[i]);
       LoRa.endPacket();
+      LoRa.receive();  
     }
   }
 }
@@ -295,16 +296,38 @@ void checkButtons() {
 
 
 void onReceive(int packetSize) {
+  // Clear buffer before use
+  memset(receivedBuffer, 0, sizeof(receivedBuffer));
+
+  // Check if the received packet is exactly 18 bytes (6 LEDs * 3 colors)
   if (packetSize != 18) {
+    Serial.print("Invalid packet size received: ");
+    Serial.println(packetSize);
     return;  // Ignore invalid packets
   }
 
-  for (int i = 0; i < packetSize; i++) {
-    if (LoRa.available()) {
-      receivedBuffer[i] = LoRa.read();
-    }
+  // Read incoming bytes into the buffer
+  int i = 0;
+  while (LoRa.available() && i < 18) {
+    receivedBuffer[i++] = LoRa.read();
   }
-  dataAvailable = true;  // Flag for processing in the main loop
+
+  // Safety: if packet was corrupted and less than 18 bytes were read
+  if (i < 18) {
+    Serial.println("Packet read incomplete, ignoring...");
+    return;
+  }
+
+  // Optional: Debug print what was received
+  Serial.print("Received Color Data: ");
+  for (int j = 0; j < 18; j++) {
+    Serial.print(receivedBuffer[j]);
+    Serial.print(" ");
+  }
+  Serial.println();
+
+  // Flag main loop to process colors
+  dataAvailable = true;
 }
 
 void handlePacket() {
